@@ -1,0 +1,83 @@
+name: Infinity Prime Labeler
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (base)
+        uses: actions/checkout@v4
+
+      - name: Compute tier labels from changed files + PROTECTED_PATHS
+        id: compute
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const yaml = require("js-yaml");
+
+            function match(glob, file) {
+              const esc = (s) => s.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+              const re = "^" + glob.split("**").map(part => part.split("*").map(esc).join("[^/]*")).join(".*") + "$";
+              return new RegExp(re).test(file);
+            }
+
+            const pr = context.payload.pull_request;
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              per_page: 100
+            });
+            const changed = files.map(f => f.filename);
+
+            const cfg = yaml.load(fs.readFileSync("docs/system/PROTECTED_PATHS.yaml", "utf8"));
+            const tiers = (cfg && cfg.tiers) ? cfg.tiers : {};
+            const hit = (patterns) => changed.filter(f => (patterns||[]).some(p => match(p, f)));
+
+            const tier4 = hit(tiers.TIER_4);
+            const tier3 = hit(tiers.TIER_3);
+            const tier2 = hit(tiers.TIER_2);
+
+            let tierLabel = "tier-1";
+            if (tier2.length) tierLabel = "tier-2";
+            if (tier3.length) tierLabel = "tier-3";
+            if (tier4.length) tierLabel = "tier-4";
+
+            core.setOutput("tierLabel", tierLabel);
+            core.setOutput("hasTier34", (tier3.length || tier4.length) ? "true" : "false");
+            core.setOutput("changed", JSON.stringify(changed));
+
+      - name: Apply labels (strict, deterministic)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const owner = context.repo.owner, repo = context.repo.repo;
+            const tierLabel = "${{ steps.compute.outputs.tierLabel }}";
+            const hasTier34 = "${{ steps.compute.outputs.hasTier34 }}" === "true";
+
+            // Start fresh: keep existing user labels, but enforce tier labels.
+            const existing = new Set(pr.labels.map(l => l.name));
+            // Remove any tier-* then set computed tier
+            for (const l of Array.from(existing)) {
+              if (l.startsWith("tier-")) existing.delete(l);
+            }
+            existing.add("infinity-prime");
+            existing.add(tierLabel);
+
+            if (hasTier34) existing.add("blocked-approval-required");
+
+            await github.rest.issues.setLabels({
+              owner, repo,
+              issue_number: pr.number,
+              labels: Array.from(existing)
+            });

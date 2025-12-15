@@ -1,0 +1,54 @@
+name: Auto-merge (SAFE only)
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  automerge:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout (PR head)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Run Risk Gate
+        id: risk
+        run: |
+          npm run -s prime:risk
+          echo "tier=$(node -e \"const fs=require('fs'); const j=JSON.parse(fs.readFileSync('docs/system/RISK_GATE_REPORT.json','utf8')); console.log(j.tier||'BLOCKED');\")" >> $GITHUB_OUTPUT
+
+      - name: Enable auto-merge if SAFE
+        if: |
+          steps.risk.outputs.tier == 'SAFE' &&
+          contains(github.event.pull_request.labels.*.name, 'automerge')
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          pull-request-number: ${{ github.event.pull_request.number }}
+          merge-method: squash
+
+      - name: Comment when blocked
+        if: steps.risk.outputs.tier != 'SAFE'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ❌ Auto-merge NOT enabled.
+            RiskGate tier: **${{ steps.risk.outputs.tier }}**
+            See `docs/system/RISK_GATE_REPORT.md` / `.json` in this PR.

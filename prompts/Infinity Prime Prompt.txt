@@ -1,0 +1,280 @@
+🔒 MASTER PROMPT — “INFINITY PRIME” SELF-OPTIMIZING AGENT
+TARGET REPO: InfinityXOneSystems/taxonomy (or your current taxonomy repo)
+ROLE: Remote GitHub Copilot Autonomous Dev (Principal Engineer + CI/SRE mindset)
+
+READ THIS ENTIRE PROMPT BEFORE YOU WRITE OR CHANGE ANY CODE.
+THIS PROMPT OVERRIDES ALL DEFAULT BEHAVIOR.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+0) NON-NEGOTIABLE OPERATING RULES (NO QUESTIONS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Do NOT ask me questions. Use defaults. Proceed until DONE.
+- Do NOT delete/move/refactor existing production structure.
+- Additive changes are pre-approved.
+- Only stop if required secrets/permissions are missing.
+- If you must choose between options, pick the safest sensible default and record it in:
+  docs/system/DECISIONS.md
+
+Definition of “SAFE DEFAULT”:
+- Prefer additive files/modules
+- Prefer feature flags
+- Prefer backward-compatible schema evolution
+- Prefer CI enforcement over human “remembering”
+- Prefer artifact logs over silent changes
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1) YOUR MISSION (WHAT YOU MUST BUILD)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Implement an internal self-optimizing enforcement harness called:
+✅ Infinity Prime
+
+Infinity Prime’s job in the taxonomy repo:
+- Continuously validate repo integrity (lint/typecheck/tests/build/contract)
+- Enforce “contract-first” taxonomy changes
+- Generate deterministic system reports (or CI artifacts)
+- Prevent drift and regressions
+- Provide a safe autonomy loop that NEVER becomes runaway
+
+Infinity Prime MAY:
+- open PRs and issues
+- update TODO status and reports
+- run nightly validations
+
+Infinity Prime MUST NOT:
+- auto-merge “risky” changes
+- run infinite loops
+- touch destructive operations without being BLOCKED
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2) PHASE 0 — REPO DISCOVERY + AUDIT (MANDATORY FIRST STEP)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Scan the repo and output:
+docs/system/AUDIT_REPORT.md
+
+Include:
+- Language/tooling (Node/TS? Python? mixed?)
+- Package manager (npm/pnpm/yarn/poetry/etc)
+- Existing CI workflows
+- Existing lints/tests/build steps
+- Existing taxonomy artifacts (schemas, JSON/YAML files, generators, docs)
+- Existing “contract” or “versioning” system (if any)
+- Gaps vs requirements in this prompt
+- What you will NOT change
+
+Do NOT implement anything until AUDIT_REPORT.md exists in the branch.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3) PHASE 1 — CREATE THE “INFINITY PRIME” HARNESS (ADDITIVE ONLY)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Create a new folder:
+scripts/prime/
+
+Required modules (implement in the repo’s primary language; if Node/TS use TS):
+1) scripts/prime/full-validation.(ts|py)
+   - Runs the full quality gate suite:
+     lint -> typecheck -> tests -> contract check -> build -> smoke (repo appropriate)
+   - Writes:
+     docs/system/FINAL_VALIDATION_REPORT.md
+   - Also writes machine-readable artifact:
+     docs/system/FINAL_VALIDATION_REPORT.json
+
+2) scripts/prime/risk-gate.(ts|py)
+   - Classifies a change set into tiers:
+     SAFE / CAUTION / BLOCKED
+   - SAFE: docs/tests/contract files/additive changes behind flags
+   - CAUTION: code behavior changes, schema adds (no deletes), generator changes
+   - BLOCKED: deletes/moves/refactors; breaking taxonomy changes; auth/secrets; destructive migrations
+   - Outputs:
+     docs/system/RISK_GATE_REPORT.json
+     docs/system/RISK_GATE_REPORT.md
+   - If BLOCKED: do not proceed to auto-merge. Open issue/PR notes only.
+
+3) scripts/prime/todo-runner.(ts|py)  (simple, bounded)
+   - Reads TODO.yaml (create if missing) and runs tasks deterministically with budgets.
+   - Supports DRY_RUN mode by default.
+   - Updates:
+     docs/system/TODO_STATUS.json
+     docs/system/EXECUTION_LOG.md
+     docs/system/VALIDATION_LOG.md
+
+4) scripts/prime/scoreboard.(ts|py)
+   - Produces a “System Excellence Score” suitable for a taxonomy repo:
+     - Reliability: CI pass rate
+     - Correctness: schema/contract validation pass
+     - Consistency: formatting + lint
+     - Change safety: no breaking taxonomy contract changes
+     - Performance: build time (optional)
+   - Writes:
+     docs/system/SCOREBOARD.json
+     docs/system/SCOREBOARD.md
+
+5) scripts/prime/run-ledger.(ts|py)
+   - Every run appends a ledger entry:
+     start/end timestamps, budgets, result, links to artifacts/PR
+   - Writes:
+     docs/system/RUN_LEDGER.json
+
+Hard anti-runaway rules (implement in code and enforce):
+- Each run has:
+  TIME_BUDGET_MINUTES default 60
+  MAX_FIX_CYCLES default 3
+- Stop immediately if:
+  - TIME_BUDGET hit
+  - MAX_FIX_CYCLES hit
+  - Regressions remain after cycles
+  - RISK tier = BLOCKED
+- Never loop forever. Ever.
+
+Create/ensure these doc files exist (even if initial templates):
+docs/system/DECISIONS.md
+docs/system/QUALITY_GATES.md
+docs/system/PRINCIPLES.md
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4) PHASE 2 — TAXONOMY CONTRACT SYSTEM (THIS IS WHAT MAKES IT “PERFECT”)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Taxonomy repos break when:
+- names drift
+- schemas drift
+- ID conventions drift
+- “one-off edits” bypass validation
+
+So implement a contract folder (authoritative):
+taxonomy_contract/
+  contract_version.json
+  schemas/               (JSON Schema if applicable)
+  rules/                 (naming/ID conventions, allowed enums, required fields)
+  examples/              (golden examples)
+  changelog/             (version notes)
+
+Required contract mechanics:
+- contract_version.json includes:
+  current_version, last_updated, breaking_changes_allowed=false
+- “contract check” script that fails CI if:
+  - breaking changes detected
+  - required fields removed
+  - renamed taxonomy IDs without alias mapping
+  - schema invalid
+  - examples do not validate
+
+Add:
+scripts/contract/check_taxonomy_contract.(js|ts|py)
+- Must exit non-zero on contract violations.
+- Must generate:
+  docs/system/CONTRACT_CHECK_REPORT.md
+  docs/system/CONTRACT_CHECK_REPORT.json
+
+If the repo already has a taxonomy schema approach, DO NOT replace it.
+Integrate with it; wrap it; enforce it.
+
+Backwards compatibility rule:
+- Never remove IDs. Deprecate with metadata and alias mapping.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5) PHASE 3 — CI ENFORCEMENT (GITHUB ACTIONS) — NO HUMAN APPROVALS NEEDED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Add or update workflows under .github/workflows/ (non-destructive):
+
+A) ci.yml (required on PR + main push)
+Must run:
+- lint
+- typecheck (if applicable)
+- tests
+- contract check (taxonomy_contract)
+- build (if applicable)
+- full-validation (Infinity Prime)
+
+Artifacts:
+- Upload FINAL_VALIDATION_REPORT.md/.json
+- Upload CONTRACT_CHECK_REPORT.md/.json
+- Upload SCOREBOARD.json/.md
+- Upload RUN_LEDGER.json
+
+B) nightly.yml (cron on main)
+Must run the same suite as ci.yml + write scoreboard/run ledger.
+
+C) smoke.yml (required if repo has runtime or CLI)
+If applicable, run minimal “smoke”:
+- run a tiny command: e.g. validate taxonomy, generate output, or compile artifact
+- must be local; no deploy required
+
+Important:
+If repo settings (auto-merge / branch protection) cannot be changed via code:
+- Write exact required steps in docs/system/REPO_SETTINGS.md
+- But still enforce via required checks in workflows.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6) PHASE 4 — “INFINITY PRIME” AUTONOMY LOOP (SAFE, BOUNDED)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Implement a safe mode where Infinity Prime can “improve” without runaway:
+- Nightly Supervisor run:
+  - validates everything
+  - updates scoreboard + reports
+  - if broken: opens an issue with artifact links (no loops)
+- Builder mode (manual dispatch workflow):
+  - picks ONE top TODO item
+  - attempts max 3 fix cycles
+  - opens PR with reports
+  - never auto-merges if RISK = BLOCKED
+
+Add:
+.github/workflows/prime-builder.yml
+- workflow_dispatch only
+- runs todo-runner with DRY_RUN=false in a controlled way
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7) IMPLEMENTATION QUALITY REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Every new script has:
+  - help/usage
+  - deterministic output (stable ordering)
+  - clear exit codes
+  - structured JSON report output
+- All logging must go to docs/system/* and CI artifacts.
+- Prefer config via env vars:
+  DRY_RUN=true
+  TIME_BUDGET_MINUTES=60
+  MAX_FIX_CYCLES=3
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8) PR STRATEGY (HOW YOU MUST SHIP THIS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Create a branch: feature/infinity-prime-taxonomy
+- Commit in small PR-style commits:
+  1) AUDIT_REPORT + doc scaffolds
+  2) taxonomy_contract folder + contract check
+  3) Infinity Prime scripts (validation/risk/todo/scoreboard/ledger)
+  4) GitHub Actions wiring + artifacts
+- Update docs/system/UPGRADE_PLAN.md with ordered tasks and what’s done.
+
+Required final outputs in the branch:
+docs/system/AUDIT_REPORT.md
+docs/system/UPGRADE_PLAN.md
+docs/system/REPO_SETTINGS.md
+taxonomy_contract/*
+scripts/prime/*
+scripts/contract/check_taxonomy_contract.*
+.github/workflows/*
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9) DEFINITION OF DONE (NON-NEGOTIABLE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+You are NOT done until:
+- CI is green on PR and main
+- contract check is enforced and passing
+- full-validation produces FINAL_VALIDATION_REPORT.md/.json
+- scoreboard + run ledger are generated
+- risk gate runs and produces reports
+- todo runner works in DRY_RUN by default
+- all artifacts upload in CI
+- docs/system/TODO_STATUS.json exists and is updated
+
+Proceed now:
+1) Generate AUDIT_REPORT.md
+2) Implement taxonomy_contract + contract check
+3) Implement Infinity Prime scripts
+4) Wire CI + nightly + artifacts
+5) Open PR with all outputs
+
+NO QUESTIONS. USE DEFAULTS. PROCEED UNTIL DONE.
+

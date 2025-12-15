@@ -1,0 +1,12 @@
+# Universal TODO backlog for Infinity Prime
+# Priority: P0 > P1 > P2
+tasks:
+  - id: P0-PRIME-001
+    title: "Install Infinity Prime gates"
+    status: "done"
+  - id: P0-PRIME-002
+    title: "Enable CI + smoke + integration where applicable"
+    status: "todo"
+  - id: P1-PRIME-010
+    title: "Add repo generator blueprint for Next.js dashboard"
+    status: "todo"

@@ -1,0 +1,88 @@
+name: Smoke (local server)
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Start local server (best-effort)
+        id: start
+        shell: bash
+        run: |
+          set -euo pipefail
+          pick_cmd() {
+            node - <<'NODE'
+            const p=require('./package.json');
+            const s=(p.scripts||{});
+            const candidates=["dev","start","api:dev","api:start"];
+            for (const c of candidates) if (s[c]) { console.log(`npm run -s ${c}`); process.exit(0); }
+            console.log("");
+            NODE
+          }
+          CMD="$(pick_cmd)"
+          if [ -z "$CMD" ]; then
+            echo "server_enabled=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          ( $CMD > /tmp/server.log 2>&1 & echo $! > /tmp/server.pid )
+          echo "server_enabled=true" >> $GITHUB_OUTPUT
+
+      - name: Smoke checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.start.outputs.server_enabled }}" != "true" ]; then
+            echo "ℹ️ No server. Smoke done."
+            exit 0
+          fi
+          wait_for() {
+            local url="$1"
+            for i in {1..60}; do
+              if curl -fsS "$url" >/dev/null 2>&1; then return 0; fi
+              sleep 1
+            done
+            return 1
+          }
+          BASE_URL="http://127.0.0.1:8080"
+          wait_for "${BASE_URL}/healthz" || (echo "❌ healthz failed"; tail -n 200 /tmp/server.log; exit 1)
+          curl -fsS "${BASE_URL}/healthz" >/dev/null
+          curl -fsS "${BASE_URL}/readyz" >/dev/null || echo "ℹ️ readyz not present"
+
+      - name: Stop server
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/server.pid ]; then kill "$(cat /tmp/server.pid)" || true; fi
+
+      - name: Upload smoke logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-logs-${{ github.run_id }}
+          if-no-files-found: warn
+          path: /tmp/server.log

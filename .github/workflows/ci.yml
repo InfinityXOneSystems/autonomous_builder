@@ -1,0 +1,62 @@
+name: CI (checks)
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Run gates (lint/typecheck/test/contract/build/prime)
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_if_script() {
+            local script="$1"
+            node -e "const p=require('./package.json'); process.exit(!(p.scripts && p.scripts['$script']))"               && (echo "▶ npm run $script" && npm run -s "$script")               || echo "ℹ️ Skipping: npm script '$script' not found"
+          }
+          run_if_script lint
+          run_if_script typecheck
+          run_if_script test
+          run_if_script contract:check
+          run_if_script build
+          run_if_script prime:validate
+
+      - name: Upload CI artifacts (reports)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-reports-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            docs/system/FINAL_VALIDATION_REPORT.md
+            docs/system/FINAL_VALIDATION_RAW.log
+            docs/system/RISK_GATE_REPORT.md
+            docs/system/RISK_GATE_REPORT.json
+            docs/system/RUN_LEDGER.json
+            docs/system/SCOREBOARD.json
+            docs/system/TODO_STATUS.json
+            docs/system/DECISIONS.md

@@ -1,0 +1,20 @@
+name: PR Template Check (Infinity Prime)
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  pr-template:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR template sections
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          STRICT_PR_TEMPLATE: "true"
+        run: |
+          node scripts/ci/pr_template_check.js

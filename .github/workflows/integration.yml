@@ -1,0 +1,55 @@
+name: Integration (Firestore emulator)
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "23 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Run integration tests with Firestore emulator (best-effort)
+        shell: bash
+        run: |
+          set -euo pipefail
+          HAS_INT_SCRIPT=$(node -e "const p=require('./package.json'); process.exit(!(p.scripts && (p.scripts['test:integration'] || p.scripts['integration'])))" && echo "yes" || echo "no")
+          if [ "$HAS_INT_SCRIPT" = "yes" ]; then
+            npx -y firebase-tools emulators:exec --only firestore --project demo-test               "npm run -s test:integration || npm run -s integration"
+          else
+            echo "ℹ️ No integration script found. Skipping emulator run."
+          fi
+
+      - name: Upload integration artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-reports-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            docs/system/FINAL_VALIDATION_REPORT.md
+            docs/system/FINAL_VALIDATION_RAW.log
+            docs/system/RUN_LEDGER.json

@@ -1,0 +1,25 @@
+# PROTECTED_PATHS.yaml — universal risk tiers
+# Tier 1-2: SAFE for auto-merge when gates pass (additive + non-critical)
+# Tier 3-4: BLOCKED approval required (critical infra/security/deploy/workflows)
+
+tiers:
+  TIER_4:
+    - ".github/workflows/**"
+    - "infrastructure/**"
+    - "terraform/**"
+    - "scripts/gh/**"
+    - "scripts/prime/**"
+    - "config/credentials_registry.yaml"
+  TIER_3:
+    - "auth/**"
+    - "payments/**"
+    - "security/**"
+    - "secrets/**"
+    - "prod/**"
+  TIER_2:
+    - "src/**"
+    - "apps/**"
+    - "services/**"
+    - "packages/**"
+  TIER_1:
+    - "**/*"

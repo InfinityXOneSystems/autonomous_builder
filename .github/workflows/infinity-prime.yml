@@ -1,0 +1,33 @@
+name: Infinity Prime Supervisor (nightly)
+
+on:
+  schedule:
+    - cron: "15 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  supervisor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run -s prime:supervisor
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: prime-supervisor-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            docs/system/FINAL_VALIDATION_REPORT.md
+            docs/system/FINAL_VALIDATION_RAW.log
+            docs/system/RISK_GATE_REPORT.*
+            docs/system/RUN_LEDGER.json
+            docs/system/SCOREBOARD.json

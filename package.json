@@ -1,0 +1,39 @@
+{
+  "name": "infinity-prime-automations",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.json",
+    "format": "prettier -w .",
+    "contract:check": "node scripts/contract/check_contract.js",
+    "prime:validate": "node --loader ts-node/esm scripts/prime/full-validation.ts",
+    "prime:risk": "node --loader ts-node/esm scripts/prime/risk-gate.ts",
+    "prime:supervisor": "node --loader ts-node/esm scripts/prime/supervisor.ts",
+    "prime:builder": "node --loader ts-node/esm scripts/prime/builder.ts",
+    "auto:run": "node --loader ts-node/esm scripts/auto/task-runner.ts",
+    "auto:bootstrap": "node --loader ts-node/esm scripts/auto/bootstrap.ts",
+    "repo:create": "node --loader ts-node/esm scripts/gh/create_repo_and_seed.ts",
+    "repo:sync": "node --loader ts-node/esm scripts/gh/sync_registry.ts",
+    "repo:apply-settings": "node --loader ts-node/esm scripts/gh/apply_repo_settings.ts"
+  },
+  "dependencies": {
+    "@octokit/rest": "^21.0.0",
+    "js-yaml": "^4.1.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@typescript-eslint/eslint-plugin": "^8.17.0",
+    "@typescript-eslint/parser": "^8.17.0",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.4.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

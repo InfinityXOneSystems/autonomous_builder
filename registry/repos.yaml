@@ -1,0 +1,12 @@
+# repos.yaml — desired repos to exist and be kept up-to-date
+# Infinity Prime will create missing repos and (re)install workflows + templates.
+
+repos:
+  - owner: InfinityXOneSystems
+    name: taxonomy
+    blueprint: node-lib-typescript
+    visibility: private
+  - owner: InfinityXOneSystems
+    name: automations
+    blueprint: node-automations
+    visibility: private

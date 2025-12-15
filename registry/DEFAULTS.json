@@ -1,0 +1,7 @@
+{
+  "default_owner": "InfinityXOneSystems",
+  "default_visibility": "private",
+  "default_blueprint": "node-api-cloudrun",
+  "default_branch": "main",
+  "default_region": "us-east1"
+}

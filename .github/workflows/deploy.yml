@@ -1,0 +1,134 @@
+name: Deploy (staging -> prod with rollback)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auth to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Capture previous staging revision + url
+        id: prev
+        shell: bash
+        run: |
+          set -euo pipefail
+          SERVICE="${{ secrets.RUN_SERVICE_STAGING }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          PREV_REV=$(gcloud run services describe "$SERVICE" --region "$REGION" --format="value(status.latestReadyRevisionName)")
+          URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --format="value(status.url)")
+          echo "prev_rev=$PREV_REV" >> $GITHUB_OUTPUT
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Deploy to STAGING (source deploy)
+        shell: bash
+        run: |
+          set -euo pipefail
+          SERVICE="${{ secrets.RUN_SERVICE_STAGING }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          gcloud run deploy "$SERVICE" --region "$REGION" --source . --quiet
+
+      - name: Health check STAGING + rollback on failure
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="${{ steps.prev.outputs.url }}"
+          HEALTH_PATH="${{ secrets.RUN_HEALTH_PATH }}"
+          if [ -z "$HEALTH_PATH" ]; then HEALTH_PATH="/healthz"; fi
+          ok="false"
+          for i in {1..30}; do
+            if curl -fsS "${URL}${HEALTH_PATH}" >/dev/null 2>&1; then ok="true"; break; fi
+            sleep 2
+          done
+          if [ "$ok" != "true" ]; then
+            echo "❌ STAGING health failed. Rolling back traffic."
+            SERVICE="${{ secrets.RUN_SERVICE_STAGING }}"
+            REGION="${{ secrets.GCP_REGION }}"
+            PREV="${{ steps.prev.outputs.prev_rev }}"
+            gcloud run services update-traffic "$SERVICE" --region "$REGION" --to-revisions "${PREV}=100" --quiet
+            exit 1
+          fi
+          echo "✅ STAGING healthy."
+
+  deploy-prod:
+    needs: [deploy-staging]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auth to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Capture previous prod revision + url
+        id: prev
+        shell: bash
+        run: |
+          set -euo pipefail
+          SERVICE="${{ secrets.RUN_SERVICE_PROD }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          PREV_REV=$(gcloud run services describe "$SERVICE" --region "$REGION" --format="value(status.latestReadyRevisionName)")
+          URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --format="value(status.url)")
+          echo "prev_rev=$PREV_REV" >> $GITHUB_OUTPUT
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Deploy to PROD (source deploy)
+        shell: bash
+        run: |
+          set -euo pipefail
+          SERVICE="${{ secrets.RUN_SERVICE_PROD }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          gcloud run deploy "$SERVICE" --region "$REGION" --source . --quiet
+
+      - name: Health check PROD + rollback on failure
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="${{ steps.prev.outputs.url }}"
+          HEALTH_PATH="${{ secrets.RUN_HEALTH_PATH }}"
+          if [ -z "$HEALTH_PATH" ]; then HEALTH_PATH="/healthz"; fi
+          ok="false"
+          for i in {1..30}; do
+            if curl -fsS "${URL}${HEALTH_PATH}" >/dev/null 2>&1; then ok="true"; break; fi
+            sleep 2
+          done
+          if [ "$ok" != "true" ]; then
+            echo "❌ PROD health failed. Rolling back traffic."
+            SERVICE="${{ secrets.RUN_SERVICE_PROD }}"
+            REGION="${{ secrets.GCP_REGION }}"
+            PREV="${{ steps.prev.outputs.prev_rev }}"
+            gcloud run services update-traffic "$SERVICE" --region "$REGION" --to-revisions "${PREV}=100" --quiet
+            exit 1
+          fi
+          echo "✅ PROD healthy."

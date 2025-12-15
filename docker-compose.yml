@@ -1,0 +1,13 @@
+services:
+  infinity-prime-supervisor:
+    build: .
+    restart: unless-stopped
+    environment:
+      - DRY_RUN=true
+    volumes:
+      - ./:/app
+      - prime-node-modules:/app/node_modules
+    command: ["npm","run","prime:supervisor"]
+
+volumes:
+  prime-node-modules:

@@ -1,0 +1,45 @@
+name: Create Repo (Infinity Prime)
+
+on:
+  workflow_dispatch:
+    inputs:
+      owner:
+        description: "Owner/org"
+        required: true
+        default: "InfinityXOneSystems"
+      repo:
+        description: "Repo name"
+        required: true
+        default: "new-system"
+      blueprint:
+        description: "Blueprint folder name"
+        required: true
+        default: "node-api-cloudrun"
+      visibility:
+        description: "public|private"
+        required: true
+        default: "private"
+
+permissions:
+  contents: read
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - name: Create + seed repo
+        env:
+          INFINITY_PRIME_GITHUB_TOKEN: ${{ secrets.INFINITY_PRIME_GITHUB_TOKEN }}
+        run: |
+          node --loader ts-node/esm scripts/gh/create_repo_and_seed.ts \
+            --owner "${{ inputs.owner }}" \
+            --repo "${{ inputs.repo }}" \
+            --blueprint "${{ inputs.blueprint }}" \
+            --visibility "${{ inputs.visibility }}"
