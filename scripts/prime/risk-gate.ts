@@ -38,7 +38,7 @@ function match(glob: string, file: string): boolean {
 function computeTier(files: string[]): { tier: Tier; reasons: string[] } {
   const cfg = yaml.load(readFileSync("docs/system/PROTECTED_PATHS.yaml", "utf8")) as any;
   const tiers = cfg.tiers ?? {};
-  const reasons: string[] = [];
+
 
   const hits = (patterns: string[]) => files.filter((f) => patterns.some((p) => match(p, f)));
 

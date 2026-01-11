@@ -1,4 +1,4 @@
-import { writeText, exists } from "../_lib/fs.js";
+import { writeText } from "../_lib/fs.js";
 import { sh } from "../_lib/exec.js";
 import { readFileSync } from "node:fs";
 
